@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Trip Planner for Pros</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #e0f7f4, #d7f2ec);
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+    #chatbox {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 2rem auto;
+      position: relative;
+      animation: fadeSlideIn 1s ease forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    @keyframes fadeSlideIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    #progress {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: #c0e7d9;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #27ae60);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .message {
+      margin: 1.5rem 0;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+    .bot {
+      color: #2e8b57;
+      font-weight: 600;
+    }
+    .user {
+      text-align: right;
+      color: #555;
+    }
+    .button-container, .checkbox-container {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+    .option-button, .checkbox-button {
+      background: rgba(46, 139, 87, 0.8);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      padding: 0.85rem 1.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1rem;
+      flex-grow: 1;
+      text-align: center;
+      transition: background 0.3s, transform 0.2s;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .option-button:hover, .checkbox-button:hover {
+      background: rgba(39, 174, 96, 0.9);
+      transform: translateY(-2px);
+    }
+    .checkbox-selected {
+      background: rgba(34, 153, 84, 0.95);
+    }
+    #confirmButton {
+      background: linear-gradient(90deg, #1abc9c, #16a085);
+      margin-top: 1.5rem;
+      padding: 0.85rem;
+      border-radius: 12px;
+      color: white;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+    #confirmButton:hover {
+      background: linear-gradient(90deg, #16a085, #149174);
+    }
+  </style>
+</head>
+<body>
+
+<div id="chatbox">
+  <div id="progress"><div id="progress-bar"></div></div>
+  <div class="message bot">👋 Hi Coach! Which period would you like to travel?</div>
+  <div class="button-container" id="choices"></div>
+</div>
+
+<script>
+let step = 0;
+let period = '';
+let hotelType = '';
+let components = [];
+let areas = [];
+
+const chatbox = document.getElementById('chatbox');
+const choices = document.getElementById('choices');
+const progressBar = document.getElementById('progress-bar');
+
+function updateProgress() {
+  const totalSteps = 4;
+  const currentStep = Math.min(step + 1, totalSteps);
+  progressBar.style.width = (currentStep / totalSteps) * 100 + '%';
+}
+
+function typeMessage(sender, text, callback) {
+  const message = document.createElement('div');
+  message.className = 'message ' + sender;
+  chatbox.appendChild(message);
+  chatbox.scrollTop = chatbox.scrollHeight;
+
+  let i = 0;
+  function typing() {
+    if (i < text.length) {
+      message.innerText += text.charAt(i);
+      i++;
+      setTimeout(typing, 30);
+    } else {
+      if (callback) callback();
+    }
+  }
+  typing();
+}
+
+function addMessage(sender, text) {
+  typeMessage(sender, text);
+}
+
+function showButtons(options) {
+  choices.innerHTML = '';
+  options.forEach(option => {
+    const button = document.createElement('button');
+    button.className = 'option-button';
+    button.innerText = option;
+    button.onclick = () => handleChoice(option);
+    choices.appendChild(button);
+  });
+  updateProgress();
+}
+
+function showCheckboxes(options, confirmFunction) {
+  choices.innerHTML = '';
+  options.forEach(option => {
+    const button = document.createElement('button');
+    button.className = 'checkbox-button';
+    button.innerText = option;
+    button.onclick = () => toggleCheckbox(option, button);
+    choices.appendChild(button);
+  });
+
+  const confirmButton = document.createElement('button');
+  confirmButton.id = 'confirmButton';
+  confirmButton.innerText = 'Confirm Selection';
+  confirmButton.onclick = confirmFunction;
+  choices.appendChild(confirmButton);
+  updateProgress();
+}
+
+function toggleCheckbox(option, button) {
+  let list = (step === 2) ? components : areas;
+  const index = list.indexOf(option);
+  if (index > -1) {
+    list.splice(index, 1);
+    button.classList.remove('checkbox-selected');
+  } else {
+    list.push(option);
+    button.classList.add('checkbox-selected');
+  }
+}
+
+function handleChoice(choice) {
+  addMessage('user', choice);
+
+  if (step === 0) {
+    period = choice;
+    setTimeout(() => {
+      addMessage('bot', `🏨 Great! Do you prefer a city hotel or a golf resort?`);
+      showButtons(['City Hotel', 'Golf Resort']);
+    }, 300);
+    step++;
+  } else if (step === 1) {
+    hotelType = choice;
+    setTimeout(() => {
+      addMessage('bot', `📋 What are your most important components? (Select multiple)`);
+      showCheckboxes([
+        'Budget under € 1.200',
+        'Budget € 1.200-1.500',
+        'Budget € 1.500-2.000',
+        'Tour quality training facilities',
+        'Halfboard',
+        'All inclusive',
+        'At least 2 courses',
+        'At least 3 courses'
+      ], confirmComponents);
+    }, 300);
+    step++;
+  }
+}
+
+function confirmComponents() {
+  addMessage('user', components.join(', '));
+  setTimeout(() => {
+    addMessage('bot', `🌍 Which areas would you like to visit? (Select multiple)`);
+    showCheckboxes([
+      'Spain',
+      'Algarve',
+      'Canary Island',
+      'Morocco',
+      'South Africa',
+      'Mauritius',
+      'Vietnam',
+      'Italy'
+    ], confirmAreas);
+  }, 300);
+  step++;
+}
+
+function confirmAreas() {
+  addMessage('user', areas.join(', '));
+  setTimeout(() => {
+    addMessage('bot', `✅ Thanks Coach! Here’s your summary:`);
+    addMessage('bot', `📅 Period: ${period}
+🏨 Hotel Type: ${hotelType}
+📋 Components: ${components.join(', ')}
+🌍 Areas: ${areas.join(', ')}`);
+    addMessage('bot', `🔄 Would you like to plan another trip?`);
+    showButtons(['Restart']);
+  }, 300);
+}
+
+choices.addEventListener('click', function(event) {
+  if (event.target.innerText.toLowerCase() === 'restart') {
+    location.reload();
+  }
+});
+
+// Initial question
+showButtons(['Summer 2025', 'Oct - Dec 2025', 'Jan - April 2026', 'Other or specific date']);
+</script>
+
+</body>
+</html>
